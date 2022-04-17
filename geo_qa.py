@@ -18,4 +18,4 @@ def get_countries_url():
         countries_url.append(url)
 
 
-# def get_country_president(country_doc):
+def get_country_president(country_doc):
