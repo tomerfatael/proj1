@@ -53,4 +53,4 @@ doc = lxml.html.fromstring(a.content)
 build_country_president(doc)
 build_country_prime_minister(doc)
 
-x = "Avi"
+y = 7
