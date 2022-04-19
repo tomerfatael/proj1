@@ -4,7 +4,7 @@ import rdflib
 
 g = rdflib.Graph()
 COUNTRIES = " https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
-WIKI_PREFIX =  "https://en.wikipedia.org"
+WIKI_PREFIX = "https://en.wikipedia.org"
 countries_url = []
 
 
@@ -47,11 +47,28 @@ def build_country_prime_minister(country_doc):
         # g.add()
         # g.add()
 
-# input for tests
-a = requests.get("https://en.wikipedia.org/wiki/iraq")
-doc = lxml.html.fromstring(a.content)
-build_country_president(doc)
-build_country_prime_minister(doc)
 
-y = 7
-x = 8
+def build_country_capital(country_doc, country):
+    capital = country_doc.xpath("//table[contains(@class,'infobox')]//tr[th/text()='Capital']/td/a/text()")
+        # add to g
+
+
+def get_population(text_list: list):
+    for text in text_list:
+        number = text.replace(",", "").replace(" ", "")
+        if number.isnumeric():
+            return text
+
+
+def build_country_population(country_doc, country):
+    index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Population']/preceding-sibling::*)") + 2)
+    text_list = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")
+    number = get_population(text_list)
+    x = 5
+    # add to g
+
+
+# input for tests
+a = requests.get("https://en.wikipedia.org/wiki/China")
+doc = lxml.html.fromstring(a.content)
+build_country_population(doc, 1)
