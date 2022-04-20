@@ -1,3 +1,4 @@
+import string
 import requests
 import lxml.html
 import rdflib
@@ -81,10 +82,18 @@ def build_country_population(country_doc, country):
     # add to g
 
 
+def build_country_form_of_government(country_doc, ont_country):
+    GOVERNMENT_IN = rdflib.URIRef("government_in")
+    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[.//a[text()='Government']]//td//text()")
+    form_of_government = [ rdflib.URIRef(government.replace(" ", "_")) for government in res if government[0].isalpha()]
+    for government in form_of_government:
+        g.add((government, GOVERNMENT_IN, ont_country))
+
+
 # input for tests
 a = requests.get("https://en.wikipedia.org/wiki/China")
 doc = lxml.html.fromstring(a.content)
 ont_country = rdflib.URIRef("china")
-build_country_president(doc, ont_country)
+build_country_form_of_government(doc, ont_country)
 g.serialize("ontology.nt", format="nt") #after this command u can see the ontology graph in the ontology.nt file
 
