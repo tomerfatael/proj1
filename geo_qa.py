@@ -104,9 +104,15 @@ def build_country_population(country_doc, country):
     index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Population']/preceding-sibling::*)") + 2)
     text_list = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")
     number = get_population(text_list)
-    x = 5
+
     # add to g
 
+def build_country_area(country_doc, country):
+    index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Area ']/preceding-sibling::*)") + 2)
+    area = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")[0]
+    area = area + "\u00b2"
+
+    # add to g
 
 def build_country_form_of_government(country_doc, ont_country):
     GOVERNMENT_IN = rdflib.URIRef("government_in")
@@ -117,17 +123,17 @@ def build_country_form_of_government(country_doc, ont_country):
 
         g.add((rdflib.URIRef(government.replace(" ", "_")), GOVERNMENT_IN, ont_country))
 
-if sys.argv[1] == 'create':
-    build_countries_url()
-    for country in countries_url:
-        ont_country = rdflib.URIRef(country[1])
-        r = requests.get(country[0])
-        country_doc = lxml.html.fromstring(r)
-        build_country_president(country_doc, ont_country)
-        build_country_prime_minister(country_doc, ont_country)
-        build_country_form_of_government(country_doc, ont_country)
-        #add avi functions
-        g.serialize("ontology.nt", format="nt")
+# if sys.argv[1] == 'create':
+#     build_countries_url()
+#     for country in countries_url:
+#         ont_country = rdflib.URIRef(country[1])
+#         r = requests.get(country[0])
+#         country_doc = lxml.html.fromstring(r)
+#         build_country_president(country_doc, ont_country)
+#         build_country_prime_minister(country_doc, ont_country)
+#         build_country_form_of_government(country_doc, ont_country)
+#         #add avi functions
+#         g.serialize("ontology.nt", format="nt")
 
 # if sys.argv[1] == 'question':
 
@@ -135,10 +141,11 @@ if sys.argv[1] == 'create':
 
 # input for single country tests
 
-a = requests.get("https://en.wikipedia.org/wiki/israel")
+a = requests.get("https://en.wikipedia.org/wiki/Paraguay")
 doc = lxml.html.fromstring(a.content)
-ont_country = rdflib.URIRef("india")
-build_country_president(doc, ont_country)
+# ont_country = rdflib.URIRef("india")
+# build_country_president(doc, ont_country)
+build_country_area(doc, "")
 # g.serialize("ontology.nt", format="nt") #after this command u can see the ontology graph in the ontology.nt file
 
 
