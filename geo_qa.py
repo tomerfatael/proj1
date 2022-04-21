@@ -155,8 +155,7 @@ def build_question(question: str):
 #         g.serialize("ontology.nt", format="nt")
 
 # if sys.argv[1] == 'question':
-
-
+x = "test"
 
 # input for single country tests
 
