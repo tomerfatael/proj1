@@ -8,6 +8,7 @@ COUNTRIES = " https://en.wikipedia.org/wiki/List_of_countries_by_population_(Uni
 WIKI_PREFIX = "https://en.wikipedia.org"
 countries_url = []
 government_forms_dict = {}
+EXAMPLE = "http://example.org/" # check if needed with Tomer
 
 
 ## building ontology ##
@@ -88,9 +89,12 @@ def build_country_prime_minister(country_doc, ont_country):
             ont_place_of_birth = rdflib.URIRef(",".join(prime_minister_place_of_birth))
             g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
 
-def build_country_capital(country_doc, country):
+def build_country_capital(country_doc, ont_country):
     capital = country_doc.xpath("//table[contains(@class,'infobox')]//tr[th/text()='Capital']/td/a/text()")
-        # add to g
+    ont_capital = rdflib.URIRef(EXAMPLE + capital)
+    #relation_capital_of = rdflib.URIRef(EXAMPLE + "capital_of") # check if we need 2 arcs to both sides, or country->capital or capital->city. this is capital->country relation
+    relation_capital = rdflib.URIRef(EXAMPLE + "capital_city") # country->capital
+    g.add((ont_country, relation_capital, ont_capital)) # adding country->capital
 
 
 def get_population(text_list: list):
@@ -100,19 +104,25 @@ def get_population(text_list: list):
             return text
 
 
-def build_country_population(country_doc, country):
+def build_country_population(country_doc, ont_country):
     index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Population']/preceding-sibling::*)") + 2)
     text_list = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")
     number = get_population(text_list)
 
-    # add to g
+    ont_population = rdflib.URIRef(EXAMPLE + number)
+    relation = rdflib.URIRef(EXAMPLE + "population_size")
+    g.add((ont_country, relation, ont_population))
 
-def build_country_area(country_doc, country):
+
+def build_country_area(country_doc, ont_country):
     index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Area ']/preceding-sibling::*)") + 2)
     area = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")[0]
-    area = area + "\u00b2"
+    area = area + "\u00b2" # adding sqr sign to km
 
-    # add to g
+    ont_area = rdflib.URIRef(EXAMPLE + area)
+    relation = rdflib.URIRef(EXAMPLE + "area_size")
+    g.add((ont_country, relation, ont_area))
+
 
 def build_country_form_of_government(country_doc, ont_country):
     GOVERNMENT_IN = rdflib.URIRef("government_in")
@@ -122,6 +132,8 @@ def build_country_form_of_government(country_doc, ont_country):
         #add to dict
 
         g.add((rdflib.URIRef(government.replace(" ", "_")), GOVERNMENT_IN, ont_country))
+
+# ask Tomer if we should send the relations to the build functions, or defining them every build ---
 
 # if sys.argv[1] == 'create':
 #     build_countries_url()
