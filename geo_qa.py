@@ -156,42 +156,45 @@ def build_query(question: str):
         # TODO maybe put those 3 if's in a function of its own
         if question.find("Who") != -1:
             country = get_country_from_question(question, "of")
-            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}>"
-            return "select * where {" + query + ".}"
+            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ."
+            return "select * where {" + query + "}"
 
         elif question.find("When") != -1:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ." #not sure
-            return "select * where {" + query + ".}"
+            return "select * where {" + query + "}"
 
         else:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ."
-            return "select * where {" + query + ".}"
+            return "select * where {" + query + "}"
 
     elif question.find("prime minister of") != -1:
         if question.find("Who") != -1:
             country = get_country_from_question(question, "of")
-            query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}>"
-            return "select * where {" + query + ".}"
+            query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ."
+            return "select * where {" + query + "}"
 
         elif question.find("When") != -1:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ." #not sure
-            return "select * where {" + query + ".}"
+            return "select * where {" + query + "}"
 
         else:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ."
-            return "select * where {" + query + ".}"
+            return "select * where {" + query + "}"
 
     elif question.find("form of government") != -1:
         country = get_country_from_question(question, "in")
         query = f"?e <{EXAMPLE}government_in> <{EXAMPLE + country}> ."
-        return "select * where {" + query + ".}"
+        return "select * where {" + query + "}"
 
     # elif question.find("Who is") != -1:
         # TODO ask Avi about it
+
+    # elif question.find("How many"):
+
 
 
 # ask Tomer if we should send the relations to the build functions, or defining them every build ---
@@ -211,19 +214,21 @@ def build_query(question: str):
 # if sys.argv[1] == 'question':
 
 
+
+################## inputs #####################
+
 # input for single country tests
 
-a = requests.get("https://en.wikipedia.org/wiki/israel")
+a = requests.get("https://en.wikipedia.org/wiki/Lesotho")
 doc = lxml.html.fromstring(a.content)
-ont_country = rdflib.URIRef("Israel")
-build_country_president(doc, ont_country)
-g.serialize("ontology.nt", format="nt") #after this command u can see the ontology graph in the ontology.nt file
-a = "Who is the president of Israel?"
+ont_country = rdflib.URIRef("Lesotho")
+build_country_prime_minister(doc, ont_country)
+g.serialize("ontology.nt", format="nt")
+a = "When was the prime minister of Lesotho born?"
 b = build_query(a)
 g.parse("ontology.nt", format="nt")
 query_list_result = g.query(b)
 print(query_list_result)
-
 
 
 #input for all countries test
