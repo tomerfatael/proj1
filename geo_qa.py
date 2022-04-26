@@ -141,17 +141,19 @@ def build_country_form_of_government(country_doc, ont_country):
 
 
 def get_country_from_question(question: str, substring: str, last_place: bool=True) -> str:
+    # TODO check countries with 2 word name
     """
     return the country name from the question
     case 1 (default) - country is the last word in the question
     case 2 - country is the second last word in the question
+    :rtype: str
     """
     idx = question.find(substring)+1
     if(last_place):
         return question[idx+len(substring):len(question)-1]
     return question[idx+len(substring):len(question)-len(" born?")]
 
-def build_query(question: str):
+def build_query(question: str) -> str:
     if question.find("president of") != -1:
         # TODO maybe put those 3 if's in a function of its own
         if question.find("Who") != -1:
