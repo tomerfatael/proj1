@@ -90,12 +90,17 @@ def build_country_prime_minister(country_doc, ont_country):
             ont_place_of_birth = rdflib.URIRef(EXAMPLE + ",".join(prime_minister_place_of_birth))
             g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
 
-def build_country_capital(country_doc, ont_country):
-    capital = country_doc.xpath("//table[contains(@class,'infobox')]//tr[th/text()='Capital']/td/a/text()")
-    ont_capital = rdflib.URIRef(EXAMPLE + capital)
-    #relation_capital_of = rdflib.URIRef(EXAMPLE + "capital_of") # check if we need 2 arcs to both sides, or country->capital or capital->city. this is capital->country relation
-    relation_capital = rdflib.URIRef(EXAMPLE + "capital_city") # country->capital
-    g.add((ont_country, relation_capital, ont_capital)) # adding country->capital
+def build_country_capital(country_doc, ont_country): # TODO countries with no capital crash the proccess, Tokelau for example - solved
+    capital = country_doc.xpath("//table[contains(@class,'infobox')]//tr[th/text()='Capital']/td/a/text()") # TODO remember to remove the _ sign
+    if len(capital) > 0:
+        capital = capital[0].replace(" ", "_")
+        ont_capital = rdflib.URIRef(EXAMPLE + capital)
+        relation_capital_of = rdflib.URIRef(
+            EXAMPLE + "capital_of")  # TODO check if we need 2 arcs to both sides, country->capital or capital->city. this is capital->country relation
+        ont_country = rdflib.URIRef(EXAMPLE + ont_country)
+        g.add((ont_capital, relation_capital_of, ont_country))  # adding capital->country
+        # relation_capital = rdflib.URIRef(EXAMPLE + "capital_city") # country->capital
+        # g.add((ont_country, relation_capital, ont_capital)) # adding country->capital
 
 
 def get_population(text_list: list):
@@ -111,17 +116,18 @@ def build_country_population(country_doc, ont_country):
     number = get_population(text_list)
 
     ont_population = rdflib.URIRef(EXAMPLE + number)
+    ont_country = rdflib.URIRef(EXAMPLE + ont_country)
     relation = rdflib.URIRef(EXAMPLE + "population_size")
     g.add((ont_country, relation, ont_population))
 
 
 def build_country_area(country_doc, ont_country):
     index = int(country_doc.xpath("count(//table[contains(@class,'infobox')]//tr[th//text()='Area ']/preceding-sibling::*)") + 2)
-    area = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")[0]
-    area = area + "\u00b2" # adding sqr sign to km
-
+    area = str(country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")[0]).split()
+    area = area[0] + "_" + area[1] + "_squared" # TODO see if it is better to add the km and squared only with the final answer
     ont_area = rdflib.URIRef(EXAMPLE + area)
     relation = rdflib.URIRef(EXAMPLE + "area_size")
+    ont_country = rdflib.URIRef(EXAMPLE + ont_country)
     g.add((ont_country, relation, ont_area))
 
 
@@ -138,6 +144,15 @@ def build_country_form_of_government(country_doc, ont_country):
         #         continue
         #     government_forms_dict[tup] += 1
         g.add((rdflib.URIRef(form_of_government[i].replace(" ", "_")), GOVERNMENT_IN, ont_country))
+
+
+def build_country(country_doc, ont_country):
+    build_country_president(country_doc, ont_country)
+    build_country_prime_minister(country_doc, ont_country)
+    build_country_capital(country_doc, ont_country)
+    build_country_area(country_doc, ont_country)
+    # build_country_form_of_government(country_doc, ont_country)
+    build_country_population(country_doc, ont_country)
 
 
 def get_country_from_question(question: str, substring: str, last_place: bool=True) -> str:
@@ -192,6 +207,21 @@ def build_query(question: str) -> str:
         query = f"?e <{EXAMPLE}government_in> <{EXAMPLE + country}> ."
         return "select * where {" + query + "}"
 
+    elif question.find("capital") != -1:
+        country = get_country_from_question(question, "of")
+        query = f"?e <{EXAMPLE}capital_of>  <{EXAMPLE + country}> ."
+        return "select * where {" + query + "}"
+
+    elif question.find("area") != -1:
+        country = get_country_from_question(question, "of")
+        query = f"<{EXAMPLE + country}>  <{EXAMPLE}area_size> ?e."
+        return "select * where {" + query + "}"
+
+    elif question.find("population") != -1:
+        country = get_country_from_question(question, "of")
+        query = f"<{EXAMPLE + country}>  <{EXAMPLE}population_size> ?e."
+        return "select * where {" + query + "}"
+
     # elif question.find("Who is") != -1:
         # TODO ask Avi about it
 
@@ -221,12 +251,12 @@ def build_query(question: str) -> str:
 
 # input for single country tests
 
-a = requests.get("https://en.wikipedia.org/wiki/Lesotho")
+a = requests.get("https://en.wikipedia.org/wiki/Tokelau")
 doc = lxml.html.fromstring(a.content)
-ont_country = rdflib.URIRef("Lesotho")
-build_country_prime_minister(doc, ont_country)
+ont_country = rdflib.URIRef("Tokelau")
+build_country(doc, ont_country)
 g.serialize("ontology.nt", format="nt")
-a = "When was the prime minister of Lesotho born?"
+a = "What is the population of Tokelau?"
 b = build_query(a)
 g.parse("ontology.nt", format="nt")
 query_list_result = g.query(b)
