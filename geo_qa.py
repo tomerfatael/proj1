@@ -8,7 +8,7 @@ COUNTRIES = " https://en.wikipedia.org/wiki/List_of_countries_by_population_(Uni
 WIKI_PREFIX = "https://en.wikipedia.org"
 EXAMPLE = "http://example.org/"
 countries_url = []
-relations_dict = {"PRESIDENT_OF" : rdflib.URIRef(EXAMPLE + "president_of")} ##needed??
+relations_dict = {"PRESIDENT_OF" : rdflib.URIRef(EXAMPLE + "president_of")} # TODO needed??
 government_forms_dict = {}
 
 
