@@ -8,7 +8,6 @@ COUNTRIES = " https://en.wikipedia.org/wiki/List_of_countries_by_population_(Uni
 WIKI_PREFIX = "https://en.wikipedia.org"
 EXAMPLE = "http://example.org/"
 countries_url = []
-relations_dict = {"PRESIDENT_OF" : rdflib.URIRef(EXAMPLE + "president_of")} # TODO needed??
 government_forms_dict = {}
 
 
@@ -39,7 +38,8 @@ def build_country_president(country_doc, ont_country):
     # check if the country have a president
     if len(president_name) > 0:
         ont_name = rdflib.URIRef(EXAMPLE + president_name[0].replace(" ", "_"))
-        g.add((ont_name, PRESIDENT_OF, EXAMPLE + ont_country))
+        g.add((ont_name, PRESIDENT_OF, ont_country))
+        g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"President_of_{ont_country[len(EXAMPLE):]}")))
 
         presidnet_wiki_suffix = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a//@href")
         presidnet_wiki_url = WIKI_PREFIX + presidnet_wiki_suffix[0]
@@ -65,12 +65,13 @@ def build_country_prime_minister(country_doc, ont_country):
     in order to get his date of birth and place of birth
     :rtype: None
     """
-    PRIME_MINISTER_OF = rdflib.URIRef(EXAMPLE + "prime_minister_of")
+    PRIME_MINISTER_OF = rdflib.URIRef(EXAMPLE + "Prime_Minister_of")
     prime_minister_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='Prime Minister']]//td//a[@title][1]//text()")
     # check if the country have a prime minister
     if len(prime_minister_name) > 0:
         ont_name = rdflib.URIRef(EXAMPLE + prime_minister_name[0].replace(" ", "_"))
-        g.add((ont_name, PRIME_MINISTER_OF, EXAMPLE + ont_country))
+        g.add((ont_name, PRIME_MINISTER_OF, ont_country))
+        g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"prime_minister_of_{ont_country[len(EXAMPLE):]}")))
 
         prime_minister_wiki_suffix = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='Prime Minister']]//td//a//@href")
         prime_minister_wiki_url = WIKI_PREFIX + prime_minister_wiki_suffix[0]
@@ -133,18 +134,10 @@ def build_country_area(country_doc, ont_country):
 
 def build_country_form_of_government(country_doc, ont_country):
     GOVERNMENT_IN = rdflib.URIRef(EXAMPLE + "government_in")
-    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[.//a[text()='Government']]//td//text()")
+    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[.//text()='Government']//td//@title") # TODO make sure its the title what they asked for
     form_of_government = [government for government in res if government[0].isalpha()]
     for i in range(len(form_of_government)):
-        # TODO check if can get this information using SPARQL query
-        # for j in range(i+1, len(form_of_government)):
-        #     tup = sorted((form_of_government[i], form_of_government[j]))
-        #     if tup not in government_forms_dict:
-        #         government_forms_dict[tup] = 1
-        #         continue
-        #     government_forms_dict[tup] += 1
-        g.add((rdflib.URIRef(form_of_government[i].replace(" ", "_")), GOVERNMENT_IN, ont_country))
-
+        g.add((rdflib.URIRef(EXAMPLE + form_of_government[i].replace(" ", "_")), GOVERNMENT_IN, ont_country))
 
 def build_country(country_doc, ont_country):
     build_country_president(country_doc, ont_country)
@@ -222,10 +215,18 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + country}>  <{EXAMPLE}population_size> ?e."
         return "select * where {" + query + "}"
 
-    # elif question.find("Who is") != -1:
-        # TODO ask Avi about it
+    elif question.find("Who is") != -1:
+        name = question[7:len(question)-1].replace(" ", "_")
+        query = f"<{EXAMPLE + name}> <{EXAMPLE}is> ?e ."
+        return "select * where {" + query + "}"
 
-    # elif question.find("How many"):
+    elif question.find("How many") != -1:
+        idx = question.find("are also")
+        form1, form2 = question[9:idx-1].replace(" ", "_"), question[idx+9:len(question)-1].replace(" ", "_")
+        # query = f"?c <{EXAMPLE}government_in> <{EXAMPLE + form1}> ." + f" ?c  <{EXAMPLE}government_in> <{EXAMPLE + form2}> ."
+        # return "select * where {" + query + "}" # TODO remember to delete this lines
+        query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
+        return "select * where {" + query + "}"
 
 
 
@@ -245,30 +246,43 @@ def build_query(question: str) -> str:
 
 # if sys.argv[1] == 'question':
 
-
+# TODO delete this function before submitting
+def test(country_doc, ont_country):
+    GOVERNMENT_IN = rdflib.URIRef(EXAMPLE + "government_in")
+    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[.//a[text()='Government']]//td//@title")
+    form_of_government = [government for government in res if government[0].isalpha()]
+    for i in range(len(form_of_government)):
+        g.add((ont_country, GOVERNMENT_IN, rdflib.URIRef(EXAMPLE+form_of_government[i].replace(" ", "_"))))
 
 ################## inputs #####################
 
 # input for single country tests
 
-a = requests.get("https://en.wikipedia.org/wiki/Tokelau")
-doc = lxml.html.fromstring(a.content)
-ont_country = rdflib.URIRef("Tokelau")
-build_country(doc, ont_country)
-g.serialize("ontology.nt", format="nt")
-a = "What is the population of Tokelau?"
-b = build_query(a)
-g.parse("ontology.nt", format="nt")
-query_list_result = g.query(b)
-print(query_list_result)
+# a = requests.get("https://en.wikipedia.org/wiki/rwanda")
+# doc = lxml.html.fromstring(a.content)
+# ont_country = rdflib.URIRef(EXAMPLE + "rwanda")
+# build_country_form_of_government(doc, ont_country)
+# g.serialize("ontology.nt", format="nt")
+# a = "How many Dictatorship are also Presidential system?"
+# b = build_query(a)
+# g.parse("ontology.nt", format="nt")
+# query_list_result = g.query(b)
+# list = list(query_list_result)
+# print(list)
 
 
 #input for all countries test
 
-# build_countries_url()
-# for c in countries_url:
-#     ont_name = rdflib.URIRef(c[1])
-#     a = requests.get(c[0])
-#     doc = lxml.html.fromstring(a.content)
-#     build_country_president(doc,ont_name)
-# g.serialize("ontology.nt", format="nt")
+build_countries_url()
+for c in countries_url:
+    ont_name = rdflib.URIRef(c[1])
+    a = requests.get(c[0])
+    doc = lxml.html.fromstring(a.content)
+    build_country_form_of_government(doc,ont_name)
+g.serialize("ontology.nt", format="nt")
+a = "How many Dictatorship are also Presidential system?"
+b = build_query(a)
+g.parse("ontology.nt", format="nt")
+query_list_result = g.query(b)
+list = list(query_list_result)
+print(list)
