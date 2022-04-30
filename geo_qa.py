@@ -231,8 +231,8 @@ def build_query(question: str) -> str:
             query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
             return "select * where {" + query + "}"
          
-         #How many presidents
-         else:
+         # How many presidents
+        else:
             country = get_country_from_question(question, "in")
             query = f"?c <{EXAMPLE}president_of> <{EXAMPLE + country}> ."
             return "select * where {" + query + "}"
