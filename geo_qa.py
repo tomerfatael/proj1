@@ -35,7 +35,7 @@ def build_country_president(country_doc, ont_country):
     :rtype: None
     """
     PRESIDENT_OF = rdflib.URIRef(EXAMPLE + "president_of")
-    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//text()")
+    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//text()") #TODO maybe switch the th in *
     # check if the country have a president
     if len(president_name) > 0:
         ont_name = rdflib.URIRef(EXAMPLE + president_name[0].replace(" ", "_"))
@@ -221,18 +221,27 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + name}> <{EXAMPLE}is> ?e ."
         return "select * where {" + query + "}"
 
-    elif question.find("How many") != -1:
-        idx = question.find("are also")
-        form1, form2 = question[9:idx-1].replace(" ", "_"), question[idx+9:len(question)-1].replace(" ", "_")
-        # query = f"?c <{EXAMPLE}government_in> <{EXAMPLE + form1}> ." + f" ?c  <{EXAMPLE}government_in> <{EXAMPLE + form2}> ."
-        # return "select * where {" + query + "}" # TODO remember to delete this lines
-        query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
-        return "select * where {" + query + "}"
+    elif question.find("How many") != -1: # TODO count the answer
+        #How many forms of government
+        if question.find("are also") != -1:
+            idx = question.find("are also")
+            form1, form2 = question[9:idx-1].replace(" ", "_"), question[idx+9:len(question)-1].replace(" ", "_")
+            # query = f"?c <{EXAMPLE}government_in> <{EXAMPLE + form1}> ." + f" ?c  <{EXAMPLE}government_in> <{EXAMPLE + form2}> ."
+            # return "select * where {" + query + "}" # TODO remember to delete this lines
+            query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
+            return "select * where {" + query + "}"
+         
+         #How many presidents
+         else:
+            country = get_country_from_question(question, "in")
+            query = f"?c <{EXAMPLE}president_of> <{EXAMPLE + country}> ."
+            return "select * where {" + query + "}"
 
-    elif question.find("all") != -1: # TODO deal with capital letters
+    elif question.find("all") != -1:
         substring = question.split()[-1].lower() # returns the last word in the question - needs to be the substring
         query = f"?capital <{EXAMPLE}capital_of> ?country . filter (contains(LCASE(STR(?capital)), '{substring}') )"
         return "select ?country where {" + query + "} order by ?country"
+
 
 
 # if sys.argv[1] == 'create':
@@ -295,6 +304,5 @@ for ans, *_ in query_list_result:
 # g.parse("ontology.nt", format="nt")
 # query_list_result = g.query(b)
 # list = list(query_list_result)
-# print(list)
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer
