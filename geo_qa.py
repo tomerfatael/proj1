@@ -34,7 +34,7 @@ def build_country_president(country_doc, ont_country):
     :rtype: None
     """
     PRESIDENT_OF = rdflib.URIRef(EXAMPLE + "president_of")
-    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//text()")
+    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//text()") #TODO maybe switch the th in *
     # check if the country have a president
     if len(president_name) > 0:
         ont_name = rdflib.URIRef(EXAMPLE + president_name[0].replace(" ", "_"))
@@ -220,14 +220,21 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + name}> <{EXAMPLE}is> ?e ."
         return "select * where {" + query + "}"
 
-    elif question.find("How many") != -1:
-        idx = question.find("are also")
-        form1, form2 = question[9:idx-1].replace(" ", "_"), question[idx+9:len(question)-1].replace(" ", "_")
-        # query = f"?c <{EXAMPLE}government_in> <{EXAMPLE + form1}> ." + f" ?c  <{EXAMPLE}government_in> <{EXAMPLE + form2}> ."
-        # return "select * where {" + query + "}" # TODO remember to delete this lines
-        query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
-        return "select * where {" + query + "}"
+    elif question.find("How many") != -1: # TODO count the answer
+        #How many forms of government
+        if question.find("are also") != -1:
+            idx = question.find("are also")
+            form1, form2 = question[9:idx-1].replace(" ", "_"), question[idx+9:len(question)-1].replace(" ", "_")
+            # query = f"?c <{EXAMPLE}government_in> <{EXAMPLE + form1}> ." + f" ?c  <{EXAMPLE}government_in> <{EXAMPLE + form2}> ."
+            # return "select * where {" + query + "}" # TODO remember to delete this lines
+            query = f"<{EXAMPLE + form1}> <{EXAMPLE}government_in> ?c ." + f" <{EXAMPLE + form2}> <{EXAMPLE}government_in> ?c ."
+            return "select * where {" + query + "}"
 
+        #How many presidents
+        else:
+            country = get_country_from_question(question, "in")
+            query = f"?c <{EXAMPLE}president_of> <{EXAMPLE + country}> ."
+            return "select * where {" + query + "}"
 
 
 # ask Tomer if we should send the relations to the build functions, or defining them every build ---
@@ -258,10 +265,27 @@ def test(country_doc, ont_country):
 
 # input for single country tests
 
-# a = requests.get("https://en.wikipedia.org/wiki/rwanda")
-# doc = lxml.html.fromstring(a.content)
-# ont_country = rdflib.URIRef(EXAMPLE + "rwanda")
-# build_country_form_of_government(doc, ont_country)
+a = requests.get("https://en.wikipedia.org/wiki/Paraguay")
+doc = lxml.html.fromstring(a.content)
+ont_country = rdflib.URIRef(EXAMPLE + "rwanda")
+build_country_president(doc, ont_country)
+g.serialize("ontology.nt", format="nt")
+a = "How many presidents were born in rwanda?"
+b = build_query(a)
+g.parse("ontology.nt", format="nt")
+query_list_result = g.query(b)
+list = list(query_list_result)
+print(list)
+
+
+#input for all countries test
+
+# build_countries_url()
+# for c in countries_url:
+#     ont_name = rdflib.URIRef(c[1])
+#     a = requests.get(c[0])
+#     doc = lxml.html.fromstring(a.content)
+#     build_country_form_of_government(doc,ont_name)
 # g.serialize("ontology.nt", format="nt")
 # a = "How many Dictatorship are also Presidential system?"
 # b = build_query(a)
@@ -269,20 +293,3 @@ def test(country_doc, ont_country):
 # query_list_result = g.query(b)
 # list = list(query_list_result)
 # print(list)
-
-
-#input for all countries test
-
-build_countries_url()
-for c in countries_url:
-    ont_name = rdflib.URIRef(c[1])
-    a = requests.get(c[0])
-    doc = lxml.html.fromstring(a.content)
-    build_country_form_of_government(doc,ont_name)
-g.serialize("ontology.nt", format="nt")
-a = "How many Dictatorship are also Presidential system?"
-b = build_query(a)
-g.parse("ontology.nt", format="nt")
-query_list_result = g.query(b)
-list = list(query_list_result)
-print(list)
