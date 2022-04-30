@@ -305,4 +305,5 @@ for ans, *_ in query_list_result:
 # query_list_result = g.query(b)
 # list = list(query_list_result)
 
-# TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer
+# TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer.
+# TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - ask in the forum
