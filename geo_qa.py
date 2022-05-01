@@ -34,10 +34,12 @@ def build_country_president(country_doc, ont_country):
     :rtype: None
     """
     PRESIDENT_OF = rdflib.URIRef(EXAMPLE + "president_of")
-    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//text()") #TODO maybe switch the th in *
+    # TODO maybe switch the th in * and change the text() to href according to description
+    president_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a[@title][1]//@href")
     # check if the country have a president
     if len(president_name) > 0:
-        ont_name = rdflib.URIRef(EXAMPLE + president_name[0].replace(" ", "_"))
+        president_name = president_name[0]
+        ont_name = rdflib.URIRef(EXAMPLE + president_name[6:].replace(" ", "_"))
         g.add((ont_name, PRESIDENT_OF, ont_country))
         g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"President_of_{ont_country[len(EXAMPLE):]}")))
 
@@ -265,7 +267,7 @@ def test(country_doc, ont_country):
 
 # input for single country tests
 
-a = requests.get("https://en.wikipedia.org/wiki/Paraguay")
+a = requests.get("https://en.wikipedia.org/wiki/argentina")
 doc = lxml.html.fromstring(a.content)
 ont_country = rdflib.URIRef(EXAMPLE + "rwanda")
 build_country_president(doc, ont_country)
