@@ -1,17 +1,17 @@
 import sys
 import urllib.parse
-
+import re
 import requests
 import lxml.html
 import rdflib
 from urllib.parse import unquote
 
 g = rdflib.Graph()
-COUNTRIES = " https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
+COUNTRIES = "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
 WIKI_PREFIX = "https://en.wikipedia.org"
 EXAMPLE = "http://example.org/"
 countries_url = []
-countries_lst = []
+countries_set = set()
 
 
 ## building ontology ##
@@ -28,7 +28,7 @@ def build_countries_url() -> None:
     for country in doc.xpath("//table//tbody//tr//span//a//@href"):
         url = WIKI_PREFIX + country
         country_name = country.split("/")[2]
-        countries_lst.append(country_name)
+        countries_set.add(country_name)
         ont_country = rdflib.URIRef(EXAMPLE + country_name)
         countries_url.append((url, ont_country))
 
@@ -41,7 +41,7 @@ def get_name_from_url(name):
 def get_place_of_birth(places_of_birth):
     place_of_birth = None
     for place in places_of_birth:
-        if place in countries_lst:
+        if place in countries_set:
             place_of_birth = place
             break
     return place_of_birth
@@ -61,7 +61,7 @@ def build_country_president(country_doc, ont_country):
         president_name = get_name_from_url(president_name_url)
         ont_name = rdflib.URIRef(EXAMPLE + president_name)
         g.add((ont_name, PRESIDENT_OF, ont_country))
-        g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"President_of_{ont_country[len(EXAMPLE):]}")))
+        g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"president_of_{ont_country[len(EXAMPLE):]}")))
 
         presidnet_wiki_suffix = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='President']]//td//a//@href")
         presidnet_wiki_url = WIKI_PREFIX + presidnet_wiki_suffix[0]
@@ -81,8 +81,11 @@ def build_country_president(country_doc, ont_country):
 
             if place_of_birth == None:
                 res = president_doc.xpath("//table//tr[th[text()='Born']]//td//text()") # TODO which text to take??
-                places_of_birth = [place.replace(" ", "_") for place in res if place[0].isalpha()]
-                place_of_birth = get_place_of_birth(places_of_birth)
+                for elem in res:
+                    places_of_birth = elem.split()
+                    place_of_birth = get_place_of_birth(places_of_birth)
+                    if place_of_birth != None:
+                        break
 
             if place_of_birth != None:
                 PLACE_OF_BIRTH = rdflib.URIRef(EXAMPLE + "place_of_birth")
@@ -96,11 +99,13 @@ def build_country_prime_minister(country_doc, ont_country):
     in order to get his date of birth and place of birth
     :rtype: None
     """
-    PRIME_MINISTER_OF = rdflib.URIRef(EXAMPLE + "Prime_Minister_of")
-    prime_minister_name = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='Prime Minister']]//td//a[@title][1]//text()")
+    PRIME_MINISTER_OF = rdflib.URIRef(EXAMPLE + "prime_minister_of")
+    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[th//a[text()='Prime Minister']]//*[contains(@class, 'infobox-data')]//@href")
     # check if the country have a prime minister
-    if len(prime_minister_name) > 0:
-        ont_name = rdflib.URIRef(EXAMPLE + prime_minister_name[0].replace(" ", "_"))
+    if len(res) > 0:
+        prime_minister_name_url = res[0]
+        prime_minister_name = get_name_from_url(prime_minister_name_url)
+        ont_name = rdflib.URIRef(EXAMPLE + prime_minister_name)
         g.add((ont_name, PRIME_MINISTER_OF, ont_country))
         g.add((ont_name, rdflib.URIRef(EXAMPLE + "is"), rdflib.URIRef(EXAMPLE + f"prime_minister_of_{ont_country[len(EXAMPLE):]}")))
 
@@ -115,12 +120,23 @@ def build_country_prime_minister(country_doc, ont_country):
             ont_date_of_birth = rdflib.URIRef(EXAMPLE + prime_minister_date_of_birth[0])
             g.add((ont_name, DATE_OF_BIRTH, ont_date_of_birth))
 
-        res = prime_minister_doc.xpath("//table//tr[th[text()='Born']]//a//text()")
-        prime_minister_place_of_birth = [place.replace(" ", "_") for place in res if place[0].isalpha()]
-        if len(prime_minister_place_of_birth) > 0:
-            PLACE_OF_BIRTH = rdflib.URIRef(EXAMPLE + "place_of_birth")
-            ont_place_of_birth = rdflib.URIRef(EXAMPLE + ",".join(prime_minister_place_of_birth))
-            g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
+        res = prime_minister_doc.xpath("//table//tr[th[text()='Born']]//a//@href")
+        if len(res) > 0:
+            places_of_birth = [get_name_from_url(place) for place in res]
+            place_of_birth = get_place_of_birth(places_of_birth)
+
+            if place_of_birth == None:
+                res = prime_minister_doc.xpath("//table//tr[th[text()='Born']]//td//text()")
+                for elem in res:
+                    places_of_birth = elem.split()
+                    place_of_birth = get_place_of_birth(places_of_birth)
+                    if place_of_birth != None:
+                        break
+
+            if place_of_birth != None:
+                PLACE_OF_BIRTH = rdflib.URIRef(EXAMPLE + "place_of_birth")
+                ont_place_of_birth = rdflib.URIRef(EXAMPLE + place_of_birth)
+                g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
 
 
 def build_country_capital(country_doc, ont_country):
@@ -173,8 +189,8 @@ def build_country(country_doc, ont_country):
     build_country_prime_minister(country_doc, ont_country)
     build_country_capital(country_doc, ont_country)
     build_country_area(country_doc, ont_country)
-    # build_country_form_of_government(country_doc, ont_country)
-    build_country_population(country_doc, ont_country)
+    build_country_form_of_government(country_doc, ont_country)
+    # build_country_population(country_doc, ont_country)
 
 
 def get_country_from_question(question: str, substring: str, last_place: bool=True) -> str:
@@ -201,13 +217,13 @@ def build_query(question: str) -> str:
 
         elif question.find("When") != -1:
             country = get_country_from_question(question, "of", False)
-            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ." #not sure
-            return "select * where {" + query + "}"
+            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ."
+            return "select ?p where {" + query + "}"
 
         else:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ."
-            return "select * where {" + query + "}"
+            return "select ?p where {" + query + "}"
 
     elif question.find("prime minister of") != -1:
         if question.find("Who") != -1:
@@ -217,18 +233,18 @@ def build_query(question: str) -> str:
 
         elif question.find("When") != -1:
             country = get_country_from_question(question, "of", False)
-            query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ." #not sure
-            return "select * where {" + query + "}"
+            query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}date_of_birth> ?p ."
+            return "select ?p where {" + query + "}"
 
         else:
             country = get_country_from_question(question, "of", False)
             query = f"?e <{EXAMPLE}prime_minister_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ."
-            return "select * where {" + query + "}"
+            return "select ?p where {" + query + "}"
 
     elif question.find("form of government") != -1:
         country = get_country_from_question(question, "in")
         query = f"?e <{EXAMPLE}government_in> <{EXAMPLE + country}> ."
-        return "select * where {" + query + "}"
+        return "select * where {" + query + "} order by ?e"
 
     elif question.find("capital of") != -1:
         country = get_country_from_question(question, "of")
@@ -261,7 +277,7 @@ def build_query(question: str) -> str:
          # How many presidents
         else:
             country = get_country_from_question(question, "in")
-            query = f"?c <{EXAMPLE}president_of> <{EXAMPLE + country}> ."
+            query = f"?c <{EXAMPLE}place_of_birth> <{EXAMPLE + country}> ."
             return "select * where {" + query + "}"
 
     elif question.find("all") != -1:
@@ -269,7 +285,13 @@ def build_query(question: str) -> str:
         query = f"?capital <{EXAMPLE}capital_of> ?country . filter (contains(LCASE(STR(?capital)), '{substring}') )"
         return "select ?country where {" + query + "} order by ?country"
 
+def answer(query_result, question = None): # TODO if the answer is None, return 0 instead
+    if question == None:
+        return [ans[19:].replace("_", " ") for ans, *_ in query_result]
 
+    elif question == "How many":
+        for ans, *_ in query_result:
+            return len(ans[19:].replace("_", " "))
 
 # if sys.argv[1] == 'create':
 #     build_countries_url()
@@ -277,57 +299,46 @@ def build_query(question: str) -> str:
 #         ont_country = rdflib.URIRef(country[1])
 #         r = requests.get(country[0])
 #         country_doc = lxml.html.fromstring(r)
-#         build_country_president(country_doc, ont_country)
-#         build_country_prime_minister(country_doc, ont_country)
-#         build_country_form_of_government(country_doc, ont_country)
-#         #add avi functions
+#         build_country(country_doc, ont_country)
 #         g.serialize("ontology.nt", format="nt")
+
 
 # if sys.argv[1] == 'question':
 
-# TODO delete this function before submitting
-def test(country_doc, ont_country):
-    GOVERNMENT_IN = rdflib.URIRef(EXAMPLE + "government_in")
-    res = country_doc.xpath("//table[contains(@class, 'infobox')]//tr[.//a[text()='Government']]//td//@title")
-    form_of_government = [government for government in res if government[0].isalpha()]
-    for i in range(len(form_of_government)):
-        g.add((ont_country, GOVERNMENT_IN, rdflib.URIRef(EXAMPLE+form_of_government[i].replace(" ", "_"))))
 
 ################## inputs #####################
 
 # input for few country tests
 # AVI relevant countries
 
-a = requests.get("https://en.wikipedia.org/wiki/indonesia")
-doc = lxml.html.fromstring(a.content)
-ont_country = rdflib.URIRef(EXAMPLE + "rwanda")
-build_country_president(doc, ont_country)
+build_countries_url()
+# a = requests.get("https://en.wikipedia.org/wiki/Republic_of_Ireland")
+# doc = lxml.html.fromstring(a.content)
+# ont_country = rdflib.URIRef(EXAMPLE + "Republic_of_Ireland")
+# build_country_president(doc, ont_country)
 # g.serialize("ontology.nt", format="nt")
-# a = "How many presidents were born in rwanda?"
+# a = "Who is the prime minister of Eswatini?"
 # b = build_query(a)
 # g.parse("ontology.nt", format="nt")
 # query_list_result = g.query(b)
 # list = list(query_list_result)
 # print(list)
 
-
-# lst = ['Sierra_Leone', 'Ethiopia', 'Eswatini', 'Niue', 'Tonga', 'Greenland', 'Andorra', 'Mongolia', 'Burundi', 'Guadeloupe', 'Eswatini', 'Rwanda', "Argentina", "Bhutan", "India", "Moldova", "Sint Maarten", "United States", "Mauritius", "Isle of Man", 'Tokelau', 'Djibouti', 'Mauritius', 'Luxembourg']
+# lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain", "North_Macedonia", "Iceland", "Fiji", "United_States", "Lesotho", "Indonesia", "Uruguay", "Solomon_Islands", "Lesotho", "Marshall_Islands", "Republic_of_the_Congo", "Republic_of_Ireland"]
 # for country in lst:
 #     country = country.replace(" ", "_")
 #     r = requests.get("https://en.wikipedia.org/wiki/" + country)
 #     doc = lxml.html.fromstring(r.content)
 #     ont_country = rdflib.URIRef(EXAMPLE + country)
 #     build_country(doc, ont_country)
-
-
 # g.serialize("ontology.nt", format="nt")
-# a = "What is the population of Tokelau?"
-#
-# b = build_query(a)
-# g.parse("ontology.nt", format="nt")
-# query_list_result = g.query(b)
-# for ans, *_ in query_list_result:
-#     print(ans[19:].replace("_", " ")) # this is how we return the final answer
+
+a = "When was the president of United States born?"
+b = build_query(a)
+g.parse("ontology.nt", format="nt")
+query_list_result = g.query(b)
+c = answer(query_list_result)
+print(c)
 
 #input for all countries test
 
@@ -347,3 +358,5 @@ build_country_president(doc, ont_country)
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer.
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - ask in the forum
 # TODO check about the relation from the pdf
+# TODO Avi: ask Adam about COUNT is SPARQL queries
+# TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
