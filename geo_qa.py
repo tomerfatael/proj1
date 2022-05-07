@@ -1,6 +1,5 @@
 import sys
 import urllib.parse
-import re # TODO CHECK if these can be used
 import requests
 import lxml.html
 import rdflib
@@ -282,7 +281,7 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + country}>  <{EXAMPLE}area_size> ?e."
         return "select * where {" + query + "}"
 
-    elif question.find("population") != -1:
+    elif question.find("What is the population") != -1:
         country = get_country_from_question(question, "of")
         query = f"<{EXAMPLE + country}>  <{EXAMPLE}population_size> ?e."
         return "select * where {" + query + "}"
@@ -306,11 +305,17 @@ def build_query(question: str) -> str:
             query = f"?c <{EXAMPLE}place_of_birth> <{EXAMPLE + country}> ."
             return "select * where {" + query + "}"
 
-    elif question.find("all") != -1:
+    elif question.find("List all countries whose capital") != -1:
         substring = question.split()[-1].lower()  # returns the last word in the question - needs to be the substring
         query = f"?capital <{EXAMPLE}capital_of> ?country . filter (contains(LCASE(STR(?capital)), '{substring}') )"
         return "select ?country where {" + query + "} order by ?country"
 
+    elif question.find("List all countries with") != -1: # new query - List all countries with population greater than {number}
+        number = question.split()[-1]
+        comma = '",", ""'
+        #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)"
+        query = f"?c <{EXAMPLE}population_size> ?p . filter(xsd:integer(REPLACE(STR(?p), {comma})) > xsd:integer({number}))"
+        return "select ?c where {" + query + "} order by ?c"
 
 def answer(query_result, question=None):  # TODO if the answer is None, return 0 instead
     if question == None:
@@ -338,28 +343,28 @@ def answer(query_result, question=None):  # TODO if the answer is None, return 0
 
 build_countries_url()
 count = 0 # TODO DELETE
-# lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain",
-# "North Macedonia", "Iceland", "Fiji", "Lesotho", "Indonesia", "Uruguay", "Solomon Islands", "Lesotho", "Marshall Islands", "Republic of the Congo", "Republic of Ireland",
+lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain"]
+ #"North Macedonia", "Iceland", "Fiji", "Lesotho", "Indonesia", "Uruguay", "Solomon Islands", "Lesotho", "Marshall Islands", "Republic of the Congo", "Republic of Ireland"]
 #        'Sierra_Leone', 'Ethiopia', 'Niue', 'Greenland', 'Andorra', 'Mongolia', 'Burundi', 'Guadeloupe', 'Rwanda', "Argentina", "Bhutan", "India", "Moldova",
 #        "Sint Maarten", "United States", "Mauritius", "Isle of Man", 'Tokelau', 'Djibouti', 'Mauritius', 'Luxembourg', "Saint Helena, Ascension and Tristan da Cunha"]
 # lst = [ "Eritrea"]
-# for country in lst:
-for country in countries_set:
+for country in lst:
+# for country in countries_set:
     country = country.replace(" ", "_")
     r = requests.get("https://en.wikipedia.org/wiki/" + country)
     doc = lxml.html.fromstring(r.content)
     ont_country = rdflib.URIRef(EXAMPLE + country)
     build_country(doc, ont_country)
-    count += 1
+    count += 1 # TODO DELETE
    # print(count)
 g.serialize("ontology.nt", format="nt")
-a = "What is the population of Tokelau?"
+a = "List all countries with population greater than 50000000"
 b = build_query(a)
 g.parse("ontology.nt", format="nt")
 query_list_result = g.query(b)
 c = answer(query_list_result)
 print(*c, sep=', ')  # this is how we should print the results
-print(count)
+print(count) # TODO DELETE
 
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
