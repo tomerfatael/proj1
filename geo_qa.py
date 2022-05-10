@@ -305,7 +305,7 @@ def build_query(question: str) -> str:
         # How many presidents
         else:
             country = get_country_from_question(question, "in")
-            query = f"?c <{EXAMPLE}place_of_birth> <{EXAMPLE + country}> ."
+            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ." #TODO make sure its work
             return "select * where {" + query + "}"
 
     elif question.find("List all countries whose capital") != -1:
@@ -327,8 +327,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
         return [ans[19:].replace("_", " ") for ans, *_ in query_result]
 
     else:
-        for ans, *_ in query_result:
-            return len(ans[19:].replace("_", " "))
+        return len(query_result)
 
 
 # if sys.argv[1] == 'create':
@@ -376,22 +375,14 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 # print(*c, sep=', ')  # this is how we should print the results
 # print(count) # TODO DELETE
 
-build_countries_url()
-for country in countries_url:
-    ont_country = country[1]
-    r = requests.get(country[0])
-    country_doc = lxml.html.fromstring(r.content)
-    build_country(country_doc, ont_country)
-
-g.serialize("ontology.nt", format="nt")
-
-a = "Who is David Kabua?"
-b = build_query(a)
-g.parse("ontology.nt", format="nt")
-query_list_result = g.query(b)
-c = answer(query_list_result)
-print(*c, sep=', ')  # this is how we should print the results
-
+# build_countries_url()
+# for country in countries_url:
+#     ont_country = country[1]
+#     r = requests.get(country[0])
+#     country_doc = lxml.html.fromstring(r.content)
+#     build_country(country_doc, ont_country)
+#
+# g.serialize("ontology.nt", format="nt")
 
 # build_countries_url()
 # for country in countries_url:
@@ -409,3 +400,24 @@ print(*c, sep=', ')  # this is how we should print the results
 # TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
 # TODO print answers right, not in an array or list - V
 # TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
+
+import pandas as pd
+file_loc = r"qa.xlsx"
+df = pd.read_excel(file_loc)
+df.columns = ['1', '2', '3']
+for row, index in df.iterrows():
+    question = index[0]
+    real_ans = index[1]
+    g.parse("ontology.nt", format="nt")
+    query = build_query(question)
+    ans = answer(query, question)
+    if "form of" not in question and "contains" not in question and "How many" not in question:
+        if ans[0] != real_ans:
+            print(f"erro in q :{question}")
+    elif "How many" in question:
+        if ans != real_ans:
+            print(f"erro in q:{question}")
+    else:
+        ans = ", ".join(ans)
+        if ans != real_ans:
+            print(f"erro in q:{question}")
