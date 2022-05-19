@@ -96,7 +96,6 @@ def build_country_president(country_doc, ont_country):
                 ont_place_of_birth = rdflib.URIRef(EXAMPLE + place_of_birth)
                 g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
 
-
 def build_country_prime_minister(country_doc, ont_country):
     """
     getting prime minister name and crawling to his wikipedia page
@@ -112,7 +111,7 @@ def build_country_prime_minister(country_doc, ont_country):
             prime_minister_name_url = res[0]
             prime_minister_name = get_name_from_url(prime_minister_name_url)
         else:
-            prime_minister_name = "Philip_Davis"
+            prime_minister_name = "Philip_Davis" #TODO make sure its work
 
         ont_name = rdflib.URIRef(EXAMPLE + prime_minister_name)
         g.add((ont_name, PRIME_MINISTER_OF, ont_country))
@@ -222,7 +221,6 @@ def build_country(country_doc, ont_country):
 
 
 def get_country_from_question(question: str, substring: str, last_place: bool = True) -> str:
-    # TODO check countries with 2 word name
     """
     return the country name from the question
     case 1 (default) - country is the last word in the question
@@ -294,7 +292,7 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + name}> <{EXAMPLE}is> ?e ."
         return "select * where {" + query + "}"
 
-    elif question.find("How many") != -1:  # TODO count the answer
+    elif question.find("How many") != -1:
         # How many forms of government
         if question.find("are also") != -1:
             idx = question.find("are also")
@@ -316,9 +314,17 @@ def build_query(question: str) -> str:
     elif question.find("List all countries with") != -1: # new query - List all countries with population greater than {number}
         number = question.split()[-1]
         comma = '",", ""'
-        #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)"
+        #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)" TODO AVI - need to delete?
         query = f"?c <{EXAMPLE}population_size> ?p . filter(xsd:integer(REPLACE(STR(?p), {comma})) > xsd:integer({number}))"
         return "select ?c where {" + query + "} order by ?c"
+
+    # elif question.find("greater than") != -1:
+    #     idx = question.find("than")
+    #     num = str(question[len(question)-idx+1:-1])
+    #     query = f"?c <{EXAMPLE}population_size> ?n . filter(xsd:integer ?n > {num})"
+    #     a = "select ?n where {" + query + "}"
+    #     b = g.parse(a)
+    #     x = 1
 
 def answer(query, question):  # TODO if the answer is None, return 0 instead
     query_result = g.query(query)
@@ -392,7 +398,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 #     build_country(country_doc, ont_country)
 #
 # g.serialize("ontology.nt", format="nt")
-
+build_query("greater than 60,000?")
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
