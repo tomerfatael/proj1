@@ -398,7 +398,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 #     build_country(country_doc, ont_country)
 #
 # g.serialize("ontology.nt", format="nt")
-#build_query("greater than 60,000?")
+# build_query("greater than 60,000?")
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
