@@ -31,6 +31,13 @@ def build_countries_url() -> None:
         ont_country = rdflib.URIRef(EXAMPLE + country_name)
         countries_url.append((url, ont_country))
 
+    afghanistan_url = WIKI_PREFIX + doc.xpath("//table//tbody//tr//a[contains(@href, 'Afghanistan')]//@href")[0]
+    western_sahara_url = WIKI_PREFIX + doc.xpath("//table//tbody//tr//a[contains(@href, 'Western_Sahara')]//@href")[0]
+    channel_islands_url = WIKI_PREFIX + doc.xpath("//table//tbody//tr//i//a[contains(@href, 'Channel_Islands')]//@href")[0]
+    for country_tup in [("Afghanistan", afghanistan_url), ("Western_Sahara", western_sahara_url), ("Channel_Islands", channel_islands_url)]:
+        countries_set.add(f"{country_tup[0]}")
+        ont_country = rdflib.URIRef(EXAMPLE + country_tup[0])
+        countries_url.append((country_tup[1], ont_country))
 
 def get_name_from_url(name):
     idx = name.find('wiki/')
@@ -312,10 +319,11 @@ def build_query(question: str) -> str:
         return "select ?country where {" + query + "} order by ?country"
 
     elif question.find("List all countries with") != -1: # new query - List all countries with population greater than {number}
-        number = question.split()[-1]
+        number = EXAMPLE + question.split()[-1]
         comma = '",", ""'
         #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)" TODO AVI - need to delete?
-        query = f"?c <{EXAMPLE}population_size> ?p . filter(xsd:integer(REPLACE(STR(?p), {comma})) > xsd:integer({number}))"
+        # query = f"?c <{EXAMPLE}population_size> ?p . filter(xsd:integer(REPLACE(STR(?p), {comma})) < xsd:integer({number}))"
+        query = f"?c <{EXAMPLE}population_size> ?p . filter ((STR(?p) > {number})"
         return "select ?c where {" + query + "} order by ?c"
 
     # elif question.find("greater than") != -1:
@@ -335,6 +343,17 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
     else:
         return len(query_result)
 
+build_countries_url()
+# relation = rdflib.URIRef(EXAMPLE + "population_size")
+# ont_country = rdflib.URIRef("Tomer")
+# ont_population = rdflib.URIRef("10,000,000")
+# g.add((ont_country, relation, ont_population))
+q = "List all countries with population greater than 5,000,000"
+g.parse("ontology.nt", format="nt")
+query = build_query(q)
+ans = answer(query, q)
+print(*ans, sep=', ')
+print("20,000,000" > "19,000,000")
 
 # if sys.argv[1] == 'create':
 #     build_countries_url()
@@ -356,20 +375,18 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 
 ################## inputs #####################
 
-# build_countries_url()
-# count = 0 # TODO DELETE
-# lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain"]
-#  #"North Macedonia", "Iceland", "Fiji", "Lesotho", "Indonesia", "Uruguay", "Solomon Islands", "Lesotho", "Marshall Islands", "Republic of the Congo", "Republic of Ireland"]
-# #        'Sierra_Leone', 'Ethiopia', 'Niue', 'Greenland', 'Andorra', 'Mongolia', 'Burundi', 'Guadeloupe', 'Rwanda', "Argentina", "Bhutan", "India", "Moldova",
-# #        "Sint Maarten", "United States", "Mauritius", "Isle of Man", 'Tokelau', 'Djibouti', 'Mauritius', 'Luxembourg', "Saint Helena, Ascension and Tristan da Cunha"]
-# # lst = [ "Eritrea"]
-# for country in lst:
-# # for country in countries_set:
-#     country = country.replace(" ", "_")
-#     r = requests.get("https://en.wikipedia.org/wiki/" + country)
-#     doc = lxml.html.fromstring(r.content)
-#     ont_country = rdflib.URIRef(EXAMPLE + country)
-#     build_country(doc, ont_country)
+build_countries_url()
+
+# for country in countries_url:
+# for country in countries_set:
+#     count += 1
+#     if count == 36:
+#         x = 1
+    # country = country.replace(" ", "_")
+    # r = requests.get("https://en.wikipedia.org/wiki/" + country)
+    # doc = lxml.html.fromstring(r.content)
+    # ont_country = rdflib.URIRef(EXAMPLE + country)
+    # build_country(doc, ont_country)
 #     count += 1 # TODO DELETE
 #    # print(count)
 # g.serialize("ontology.nt", format="nt")
@@ -381,24 +398,6 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 # print(*c, sep=', ')  # this is how we should print the results
 # print(count) # TODO DELETE
 
-# build_countries_url()
-# for country in countries_url:
-#     ont_country = country[1]
-#     r = requests.get(country[0])
-#     country_doc = lxml.html.fromstring(r.content)
-#     build_country(country_doc, ont_country)
-#
-# g.serialize("ontology.nt", format="nt")
-
-# build_countries_url()
-# for country in countries_url:
-#     ont_country = country[1]
-#     r = requests.get(country[0])
-#     country_doc = lxml.html.fromstring(r.content)
-#     build_country(country_doc, ont_country)
-#
-# g.serialize("ontology.nt", format="nt")
-build_query("greater than 60,000?")
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
@@ -407,23 +406,23 @@ build_query("greater than 60,000?")
 # TODO print answers right, not in an array or list - V
 # TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
 
-import pandas as pd
-file_loc = r"qa.xlsx"
-df = pd.read_excel(file_loc)
-df.columns = ['1', '2', '3']
-for row, index in df.iterrows():
-    question = index[0]
-    real_ans = index[1]
-    g.parse("ontology.nt", format="nt")
-    query = build_query(question)
-    ans = answer(query, question)
-    if "form of" not in question and "contains" not in question and "How many" not in question:
-        if ans[0] != real_ans:
-            print(f"erro in q :{question}")
-    elif "How many" in question:
-        if ans != real_ans:
-            print(f"erro in q:{question}")
-    else:
-        ans = ", ".join(ans)
-        if ans != real_ans:
-            print(f"erro in q:{question}")
+# import pandas as pd
+# file_loc = r"qa.xlsx"
+# df = pd.read_excel(file_loc)
+# df.columns = ['1', '2', '3']
+# for row, index in df.iterrows():
+#     question = index[0]
+#     real_ans = index[1]
+#     g.parse("ontology.nt", format="nt")
+#     query = build_query(question)
+#     ans = answer(query, question)
+#     if "form of" not in question and "contains" not in question and "How many" not in question:
+#         if ans[0] != real_ans:
+#             print(f"erro in q :{question}")
+#     elif "How many" in question:
+#         if ans != real_ans:
+#             print(f"erro in q:{question}")
+#     else:
+#         ans = ", ".join(ans)
+#         if ans != real_ans:
+#             print(f"erro in q:{question}")
