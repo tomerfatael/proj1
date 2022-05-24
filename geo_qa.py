@@ -3,7 +3,7 @@ import urllib.parse
 import requests
 import lxml.html
 import rdflib
-
+import pandas as pd
 
 g = rdflib.Graph()
 COUNTRIES = "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
@@ -348,7 +348,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 
 # if sys.argv[1] == 'question': # TODO check this function
 #     g.parse("ontology.nt", format="nt")
-#     question = sys.argv[2]
+#     question = ' '.join(sys.argv[2].split())
 #     query = build_query(question)
 #     ans = answer(query, question)
 #     print(*ans, sep=', ')
@@ -398,32 +398,32 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 #     build_country(country_doc, ont_country)
 #
 # g.serialize("ontology.nt", format="nt")
-build_query("greater than 60,000?")
+# build_query("greater than 60,000?")
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
-# TODO Avi: ask Adam about COUNT is SPARQL queries
+# TODO Avi: ask Adam about COUNT is SPARQL queries - V
 # TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
 # TODO print answers right, not in an array or list - V
 # TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
 
-import pandas as pd
+
 file_loc = r"qa.xlsx"
 df = pd.read_excel(file_loc)
 df.columns = ['1', '2', '3']
 for row, index in df.iterrows():
-    question = index[0]
+    question = ' '.join(index[0].split())
     real_ans = index[1]
     g.parse("ontology.nt", format="nt")
     query = build_query(question)
     ans = answer(query, question)
     if "form of" not in question and "contains" not in question and "How many" not in question:
         if ans[0] != real_ans:
-            print(f"erro in q :{question}")
+            print(f"error in q :{question}")
     elif "How many" in question:
         if ans != real_ans:
-            print(f"erro in q:{question}")
+            print(f"error in q:{question}")
     else:
         ans = ", ".join(ans)
         if ans != real_ans:
-            print(f"erro in q:{question}")
+            print(f"error in q:{question}")
