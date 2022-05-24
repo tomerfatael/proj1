@@ -402,7 +402,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 
 # TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
 # TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
-# TODO Avi: ask Adam about COUNT is SPARQL queries
+# TODO Avi: ask Adam about COUNT is SPARQL queries - V
 # TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
 # TODO print answers right, not in an array or list - V
 # TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
