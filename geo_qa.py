@@ -3,7 +3,7 @@ import urllib.parse
 import requests
 import lxml.html
 import rdflib
-
+import pandas as pd
 
 g = rdflib.Graph()
 COUNTRIES = "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
@@ -30,6 +30,15 @@ def build_countries_url() -> None:
         countries_set.add(country_name)
         ont_country = rdflib.URIRef(EXAMPLE + country_name)
         countries_url.append((url, ont_country))
+    afghanistan_url = WIKI_PREFIX + doc.xpath("//table//tbody//tr//a[contains(@href, 'Afghanistan')]//@href")[0]
+    western_sahara_url = WIKI_PREFIX + doc.xpath("//table//tbody//tr//a[contains(@href, 'Western_Sahara')]//@href")[0]
+    channel_islands_url = WIKI_PREFIX + \
+                          doc.xpath("//table//tbody//tr//i//a[contains(@href, 'Channel_Islands')]//@href")[0]
+    for country_tup in [("Afghanistan", afghanistan_url), ("Western_Sahara", western_sahara_url),
+                        ("Channel_Islands", channel_islands_url)]:
+        countries_set.add(f"{country_tup[0]}")
+        ont_country = rdflib.URIRef(EXAMPLE + country_tup[0])
+        countries_url.append((country_tup[1], ont_country))
 
 
 def get_name_from_url(name):
@@ -156,6 +165,8 @@ def build_country_capital(country_doc, ont_country):
     if len(capital) > 0:
         capital = get_name_from_url(capital[0])
         capital = capital.replace(" ", "_")
+        if capital == 'De_jure':
+            capital = "None"
         ont_capital = rdflib.URIRef(EXAMPLE + capital)
         relation_capital_of = rdflib.URIRef(EXAMPLE + "capital_of")
         g.add((ont_capital, relation_capital_of, ont_country))  # adding capital->country
@@ -312,10 +323,11 @@ def build_query(question: str) -> str:
         return "select ?country where {" + query + "} order by ?country"
 
     elif question.find("List all countries with") != -1: # new query - List all countries with population greater than {number}
-        number = question.split()[-1]
+        number = EXAMPLE + question.split()[-1]
+        number = rdflib.URIRef(number)
         comma = '",", ""'
         #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)" TODO AVI - need to delete?
-        query = f"?c <{EXAMPLE}population_size> ?p . filter(xsd:integer(REPLACE(STR(?p), {comma})) > xsd:integer({number}))"
+        query = f"?c <{EXAMPLE}population_size> ?p . filter (?p > {number})"
         return "select ?c where {" + query + "} order by ?c"
 
     # elif question.find("greater than") != -1:
@@ -335,6 +347,10 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
     else:
         return len(query_result)
 
+q = "List all countries with population greater than 15,000,000"
+query = build_query(q)
+ans = answer(query, q)
+print(ans)
 
 # if sys.argv[1] == 'create':
 #     build_countries_url()
@@ -348,7 +364,7 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 
 # if sys.argv[1] == 'question': # TODO check this function
 #     g.parse("ontology.nt", format="nt")
-#     question = sys.argv[2]
+#     question = ' '.join(sys.argv[2].split())
 #     query = build_query(question)
 #     ans = answer(query, question)
 #     print(*ans, sep=', ')
@@ -396,34 +412,52 @@ def answer(query, question):  # TODO if the answer is None, return 0 instead
 #     r = requests.get(country[0])
 #     country_doc = lxml.html.fromstring(r.content)
 #     build_country(country_doc, ont_country)
-#
 # g.serialize("ontology.nt", format="nt")
-build_query("greater than 60,000?")
+# build_query("greater than 60,000?")
 
-# TODO AVI: add order by to all queries which could have more than 1 answer - say to Tomer. - V
-# TODO Avi: Saint_Helena,_Ascension_and_Tristan_da_Cunha name needs to dealt with. - V
-# TODO Avi: ask Adam about COUNT is SPARQL queries
+
 # TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
 # TODO print answers right, not in an array or list - V
 # TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
 
-import pandas as pd
-file_loc = r"qa.xlsx"
-df = pd.read_excel(file_loc)
-df.columns = ['1', '2', '3']
-for row, index in df.iterrows():
-    question = index[0]
-    real_ans = index[1]
-    g.parse("ontology.nt", format="nt")
-    query = build_query(question)
-    ans = answer(query, question)
-    if "form of" not in question and "contains" not in question and "How many" not in question:
-        if ans[0] != real_ans:
-            print(f"erro in q :{question}")
-    elif "How many" in question:
-        if ans != real_ans:
-            print(f"erro in q:{question}")
-    else:
-        ans = ", ".join(ans)
-        if ans != real_ans:
-            print(f"erro in q:{question}")
+
+# file_loc = r"qa.xlsx"
+# df = pd.read_excel(file_loc)
+# df.columns = ['1', '2', '3']
+# for row, index in df.iterrows():
+#     question = ' '.join(index[0].split())
+#     real_ans = index[1]
+#     g.parse("ontology.nt", format="nt")
+#     query = build_query(question)
+#     ans = answer(query, question)
+#     if "form of" not in question and "contains" not in question and "How many" not in question:
+#         if ans[0] != real_ans:
+#             print(f"error in q :{question}")
+#     elif "How many" in question:
+#         if ans != real_ans:
+#             print(f"error in q:{question}")
+#     else:
+#         ans = ", ".join(ans)
+#         if ans != real_ans:
+#             print(f"error in q:{question}")
+
+
+# g.parse("ontology.nt", format="nt")
+# question = "What is the population of "
+# r = requests.get(COUNTRIES)
+# doc = lxml.html.fromstring(r.content)
+# countries_list = []
+# for country in doc.xpath("//table//tbody//tr//span//a//@href"):
+#     country_name = get_name_from_url(country)
+#     countries_list.append(country_name)
+
+# for country_name in countries_list:
+#     country_question = question + country_name + '?'
+#     query = build_query(country_question)
+#     ans = answer(query, country_question)
+#     if len(ans) == 0:
+#         print("country " + country_name + " has no data")
+#     else:
+#         print(country_name + " " + ans[0])
+
+
