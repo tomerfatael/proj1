@@ -322,78 +322,63 @@ def build_query(question: str) -> str:
         query = f"?capital <{EXAMPLE}capital_of> ?country . filter (contains(LCASE(STR(?capital)), '{substring}') )"
         return "select ?country where {" + query + "} order by ?country"
 
-    elif question.find("List all countries with") != -1: # new query - List all countries with population greater than {number}
-        number = EXAMPLE + question.split()[-1]
-        number = rdflib.URIRef(number)
-        comma = '",", ""'
-        #query =  f"<{EXAMPLE + country}> <{EXAMPLE}population_size> ?p ." + f" bind(REPLACE(STR(?p), {comma}) AS ?n)" TODO AVI - need to delete?
-        query = f"?c <{EXAMPLE}population_size> ?p . filter (?p > {number})"
-        return "select ?c where {" + query + "} order by ?c"
-
-    # elif question.find("greater than") != -1:
-    #     idx = question.find("than")
-    #     num = str(question[len(question)-idx+1:-1])
-    #     query = f"?c <{EXAMPLE}population_size> ?n . filter(xsd:integer ?n > {num})"
-    #     a = "select ?n where {" + query + "}"
-    #     b = g.parse(a)
-    #     x = 1
+    ######added question######
+    elif question.find("List all countries whose government") != -1:
+        idx = question.find("form is")
+        form_of_government = question[idx + 8:]
+        query = f"<{EXAMPLE + form_of_government}> <{EXAMPLE}government_in> ?c ."
+        return "select ?c where {" + query + "}"
 
 def answer(query, question):  # TODO if the answer is None, return 0 instead
     query_result = g.query(query)
     need_to_count = "How many" in question
     if not need_to_count:
-        return [ans[19:].replace("_", " ") for ans, *_ in query_result]
+        return ", ".join([ans[19:].replace("_", " ") for ans, *_ in query_result])
 
     else:
         return len(query_result)
 
-q = "List all countries with population greater than 15,000,000"
-query = build_query(q)
-ans = answer(query, q)
-print(ans)
-
-# if sys.argv[1] == 'create':
-#     build_countries_url()
-#     for country in countries_url:
-#         ont_country = country[1]
-#         r = requests.get(country[0])
-#         country_doc = lxml.html.fromstring(r.content)
-#         build_country(country_doc, ont_country)
-#         g.serialize("ontology.nt", format="nt")
+if sys.argv[1] == 'create':
+    build_countries_url()
+    for country in countries_url:
+        ont_country = country[1]
+        r = requests.get(country[0])
+        country_doc = lxml.html.fromstring(r.content)
+        build_country(country_doc, ont_country)
+        g.serialize("ontology.nt", format="nt")
 
 
-# if sys.argv[1] == 'question': # TODO check this function
-#     g.parse("ontology.nt", format="nt")
-#     question = ' '.join(sys.argv[2].split())
-#     query = build_query(question)
-#     ans = answer(query, question)
-#     print(*ans, sep=', ')
+if sys.argv[1] == 'question':
+    g.parse("ontology.nt", format="nt")
+    question = ' '.join(sys.argv[2].split())
+    query = build_query(question)
+    ans = answer(query, question)
+    print(ans)
+    #print(*ans, sep=', ') #TODO fix this
 
 
 ################## inputs #####################
 
 # build_countries_url()
-# count = 0 # TODO DELETE
-# lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain"]
-#  #"North Macedonia", "Iceland", "Fiji", "Lesotho", "Indonesia", "Uruguay", "Solomon Islands", "Lesotho", "Marshall Islands", "Republic of the Congo", "Republic of Ireland"]
-# #        'Sierra_Leone', 'Ethiopia', 'Niue', 'Greenland', 'Andorra', 'Mongolia', 'Burundi', 'Guadeloupe', 'Rwanda', "Argentina", "Bhutan", "India", "Moldova",
-# #        "Sint Maarten", "United States", "Mauritius", "Isle of Man", 'Tokelau', 'Djibouti', 'Mauritius', 'Luxembourg', "Saint Helena, Ascension and Tristan da Cunha"]
-# # lst = [ "Eritrea"]
+# # count = 0 # TODO DELETE
+# # lst = ["China", "Portugal", "Guam", "Eswatini", "Tonga", "Argentina", "Sweden", "Bahrain"]
+# #  #"North Macedonia", "Iceland", "Fiji", "Lesotho", "Indonesia", "Uruguay", "Solomon Islands", "Lesotho", "Marshall Islands", "Republic of the Congo", "Republic of Ireland"]
+# # #        'Sierra_Leone', 'Ethiopia', 'Niue', 'Greenland', 'Andorra', 'Mongolia', 'Burundi', 'Guadeloupe', 'Rwanda', "Argentina", "Bhutan", "India", "Moldova",
+# # #        "Sint Maarten", "United States", "Mauritius", "Isle of Man", 'Tokelau', 'Djibouti', 'Mauritius', 'Luxembourg', "Saint Helena, Ascension and Tristan da Cunha"]
+# lst = ["Afghanistan"]
 # for country in lst:
-# # for country in countries_set:
 #     country = country.replace(" ", "_")
 #     r = requests.get("https://en.wikipedia.org/wiki/" + country)
 #     doc = lxml.html.fromstring(r.content)
 #     ont_country = rdflib.URIRef(EXAMPLE + country)
 #     build_country(doc, ont_country)
-#     count += 1 # TODO DELETE
-#    # print(count)
+# #     count += 1 # TODO DELETE
+# #    # print(count)
 # g.serialize("ontology.nt", format="nt")
-# a = "List all countries with population greater than 50000000"
+# a = "Who is the prime minister of Afghanistan?"
 # b = build_query(a)
 # g.parse("ontology.nt", format="nt")
-# query_list_result = g.query(b)
-# c = answer(query_list_result)
+# c = answer(b, a)
 # print(*c, sep=', ')  # this is how we should print the results
 # print(count) # TODO DELETE
 
