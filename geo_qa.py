@@ -170,7 +170,6 @@ def build_country_prime_minister(country_doc, ont_country):
                 ont_place_of_birth = rdflib.URIRef(EXAMPLE + place_of_birth)
                 g.add((ont_name, PLACE_OF_BIRTH, ont_place_of_birth))
 
-
 def build_country_capital(country_doc, ont_country):
     """
     creating the capital of a given country
@@ -215,16 +214,12 @@ def build_country_population(country_doc, ont_country):
     :param country_doc:
     :param ont_country:
     """
-    # print(str(ont_country[19:]))  # TODO DELETE
     index = "count(//table[contains(@class,'infobox')]//tr[th//text()='Population']/preceding-sibling::*) + 2"
     text_list = country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + index + "]/td//text()")
     number = get_population(text_list)
-    # print(str(ont_country[19:]) + " " + number) #TODO DELETE
-
     ont_population = rdflib.URIRef(EXAMPLE + number)
     relation = rdflib.URIRef(EXAMPLE + "population_size")
     g.add((ont_country, relation, ont_population))
-   # print("country: " + str(ont_country)[19:] + " Population: " + number)  # TODO DELETE
 
 
 def build_country_area(country_doc, ont_country):
@@ -239,7 +234,7 @@ def build_country_area(country_doc, ont_country):
         index = int(country_doc.xpath(
             "count(//table[contains(@class,'infobox')]//tr[th//text()='Area']/preceding-sibling::*)") + 2)  # fixing, 'Area ' VS 'Area' issue
     area = str(country_doc.xpath("//table[contains(@class,'infobox')]//tr[" + str(index) + "]/td//text()")[0]).split()
-    area = area[0] + "_km_squared"  # TODO see if it is better to add the km and squared only with the final answer
+    area = area[0] + "_km_squared"
     ont_area = rdflib.URIRef(EXAMPLE + area)
     relation = rdflib.URIRef(EXAMPLE + "area_size")
     g.add((ont_country, relation, ont_area))
@@ -253,7 +248,7 @@ def build_country_form_of_government(country_doc, ont_country):
     """
     GOVERNMENT_IN = rdflib.URIRef(EXAMPLE + "government_in")
     res = country_doc.xpath(
-        "//table[contains(@class, 'infobox')]//tr[.//text()='Government']//td//@title")  # TODO make sure its the title what they asked for
+        "//table[contains(@class, 'infobox')]//tr[.//text()='Government']//td//@title")
     form_of_government = [government for government in res if government[0].isalpha()]
     for i in range(len(form_of_government)):
         g.add((rdflib.URIRef(EXAMPLE + form_of_government[i].replace(" ", "_")), GOVERNMENT_IN, ont_country))
@@ -360,7 +355,7 @@ def build_query(question: str) -> str:
         # How many presidents
         else:
             country = get_country_from_question(question, "in")
-            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ." #TODO make sure its work
+            query = f"?e <{EXAMPLE}president_of>  <{EXAMPLE + country}> ." + f"?e <{EXAMPLE}place_of_birth> ?p ."
             return "select * where {" + query + "}"
 
     elif question.find("List all countries whose capital") != -1:
@@ -375,7 +370,7 @@ def build_query(question: str) -> str:
         query = f"<{EXAMPLE + form_of_government}> <{EXAMPLE}government_in> ?c ."
         return "select ?c where {" + query + "} order by ?c"
 
-def answer(query, question):  # TODO if the answer is None, return 0 instead
+def answer(query, question):
     """
     returning the answer of the user question
     :param query:
@@ -405,14 +400,6 @@ if sys.argv[1] == 'question':
     query = build_query(question)
     ans = answer(query, question)
     print(ans)
-    #print(*ans, sep=', ') #TODO fix this
-
-
-################## inputs #####################
-
-
-# TODO - make sure that in Republic of Ireland case, g should not include the place_of_birth relation (because the president place of birth is Ireland)
-# TODO TOMER there are 3 countries that don't appear in the set, need to understand why. - found out that these are the last countries in the countries url
 
 # import pandas as pd
 # file_loc = r"qa.xlsx"
@@ -425,33 +412,14 @@ if sys.argv[1] == 'question':
 #     query = build_query(question)
 #     ans = answer(query, question)
 #     if "form of" not in question and "contains" not in question and "How many" not in question:
-#         if ans[0] != real_ans:
+#         if ans != real_ans:
 #             print(f"error in q :{question}")
 #     elif "How many" in question:
 #         if ans != real_ans:
 #             print(f"error in q:{question}")
 #     else:
-#         ans = ", ".join(ans)
 #         if ans != real_ans:
 #             print(f"error in q:{question}")
 
-
-# g.parse("ontology.nt", format="nt")
-# question = "What is the population of "
-# r = requests.get(COUNTRIES)
-# doc = lxml.html.fromstring(r.content)
-# countries_list = []
-# for country in doc.xpath("//table//tbody//tr//span//a//@href"):
-#     country_name = get_name_from_url(country)
-#     countries_list.append(country_name)
-
-# for country_name in countries_list:
-#     country_question = question + country_name + '?'
-#     query = build_query(country_question)
-#     ans = answer(query, country_question)
-#     if len(ans) == 0:
-#         print("country " + country_name + " has no data")
-#     else:
-#         print(country_name + " " + ans[0])
 
 
