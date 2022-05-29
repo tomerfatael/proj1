@@ -327,7 +327,7 @@ def build_query(question: str) -> str:
         idx = question.find("form is")
         form_of_government = question[idx + 8:]
         query = f"<{EXAMPLE + form_of_government}> <{EXAMPLE}government_in> ?c ."
-        return "select ?c where {" + query + "}"
+        return "select ?c where {" + query + "} order by ?c"
 
 def answer(query, question):  # TODO if the answer is None, return 0 instead
     query_result = g.query(query)
