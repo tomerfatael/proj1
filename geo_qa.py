@@ -4,7 +4,7 @@ import requests
 import lxml.html
 import rdflib
 
-sys.stdout.reconfigure(encoding='utf-8') #TODO check
+sys.stdout.reconfigure(encoding='utf-8')
 
 g = rdflib.Graph()
 COUNTRIES = "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
@@ -15,7 +15,6 @@ countries_set = set()
 
 
 ## building ontology ##
-
 
 def build_countries_url() -> None:
     """
@@ -400,26 +399,3 @@ if sys.argv[1] == 'question':
     query = build_query(question)
     ans = answer(query, question)
     print(ans)
-
-# import pandas as pd
-# file_loc = r"qa.xlsx"
-# df = pd.read_excel(file_loc)
-# df.columns = ['1', '2', '3']
-# for row, index in df.iterrows():
-#     question = ' '.join(index[0].split())
-#     real_ans = index[1]
-#     g.parse("ontology.nt", format="nt")
-#     query = build_query(question)
-#     ans = answer(query, question)
-#     if "form of" not in question and "contains" not in question and "How many" not in question:
-#         if ans != real_ans:
-#             print(f"error in q :{question}")
-#     elif "How many" in question:
-#         if ans != real_ans:
-#             print(f"error in q:{question}")
-#     else:
-#         if ans != real_ans:
-#             print(f"error in q:{question}")
-
-
-
