@@ -341,7 +341,7 @@ def build_query(question: str) -> str:
     elif question.find("Who is") != -1:
         name = question[7:len(question) - 1].replace(" ", "_")
         query = f"<{EXAMPLE + name}> <{EXAMPLE}is> ?e ."
-        return "select * where {" + query + "}"
+        return "select * where {" + query + "} order by ?e"
 
     elif question.find("How many") != -1:
         # How many forms of government
@@ -391,7 +391,7 @@ if sys.argv[1] == 'create':
         r = requests.get(country[0])
         country_doc = lxml.html.fromstring(r.content)
         build_country(country_doc, ont_country)
-        g.serialize("ontology.nt", format="nt")
+    g.serialize("ontology.nt", format="nt")
 
 if sys.argv[1] == 'question':
     g.parse("ontology.nt", format="nt")
